@@ -541,6 +541,8 @@ function startAdhan(k,test){
   resumeAfter=!!(cur&&!player.paused);if(resumeAfter)player.pause();
   var src=adhanSrc(k),key=src.replace("audio/adhan_","").replace(".mp3","");
   aCue=CUES[key]||null;aPh=key.indexOf("fajr")>=0?PHF:PH;aIdx=-1;
+  // Qassas says each takbir in its own breath, so show a single takbir per line for him
+  if(key.indexOf("qassas")===0)aPh=aPh.map(function(x){return x==="اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ"?"اللَّهُ أَكْبَرُ":x});
   var now=new Date(),pp=parts(now),T=timesFor(pp.y,pp.m,pp.d),at=test?now:T[k];
   iqamaAt=new Date(at.getTime()+iqMin(k)*60000);adhanKey=k;
   var f=function(d){var h=hm12(d);return h.t+" "+h.ap};
