@@ -162,7 +162,20 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 .adhanov .card{text-align:center;width:min(100%,calc(var(--u)*90))}
 .adhanov .big{font-family:var(--f-display);font-size:calc(var(--u)*6.5);color:var(--gold);line-height:1.2;margin:calc(var(--u)*.5) 0}
-.adhanov .dua{font-family:var(--f-text);font-size:calc(var(--u)*2.1);line-height:1.9;color:var(--gold-soft)}
+.adhanov .ahead{color:var(--muted);margin:0;font-size:calc(var(--u)*1.5)}
+.adhanov .dua{font-family:var(--f-text);font-size:calc(var(--u)*4.2);line-height:1.7;color:var(--gold-soft);min-height:calc(var(--u)*8);display:grid;place-items:center}
+.adhanov .dua.small{font-size:calc(var(--u)*2.2);line-height:1.9}
+.adhanov .aprev{font-family:var(--f-text);font-size:calc(var(--u)*2);color:var(--muted);min-height:calc(var(--u)*3.4);opacity:.75}
+.atimes{display:flex;justify-content:center;gap:calc(var(--u)*3);margin:calc(var(--u)*.6) 0 calc(var(--u)*1.4)}
+.atimes>div{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*.2);padding:calc(var(--u)*.8) calc(var(--u)*2.6);border-radius:calc(var(--u)*1.1);background:var(--glass);border:1px solid var(--line);min-width:calc(var(--u)*18)}
+.atimes span{font-size:calc(var(--u)*1.2);color:var(--muted)}
+.atimes b{font-size:calc(var(--u)*3);font-weight:600;font-variant-numeric:tabular-nums}
+.atimes small{font-size:calc(var(--u)*1.05);color:var(--gold-soft);min-height:1.2em}
+.aprog{display:flex;justify-content:center;gap:calc(var(--u)*.55);margin:calc(var(--u)*1) 0 calc(var(--u)*.4)}
+.aprog i{width:calc(var(--u)*.8);height:calc(var(--u)*.8);border-radius:50%;background:rgba(255,255,255,.18);display:block}
+.aprog i.d{background:var(--gold)}
+.typing::after{content:"";display:inline-block;width:.06em;height:.9em;background:var(--gold);margin-inline-start:.08em;vertical-align:middle;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
 
 /* settings */
 .setcard{width:min(100%,calc(var(--u)*100))!important;padding:calc(var(--u)*2.2) calc(var(--u)*2.6)!important}
@@ -251,7 +264,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
   <section class="hero">
     <div class="next">
-      <div class="lbl">الصلاة القادمة</div>
+      <div class="lbl" id="nextLbl">الصلاة القادمة</div>
       <div class="name" id="nextName">—</div>
       <div class="at" id="nextAt"></div>
     </div>
@@ -296,9 +309,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 <!-- adhan overlay -->
 <div class="ov adhanov" id="adhanOv" data-layer hidden>
   <div class="card">
-    <p style="color:var(--muted);margin:0">حان الآن موعد</p>
+    <p class="ahead" id="adhanHead">حان الآن موعد</p>
     <div class="big" id="adhanTitle">أذان الظهر</div>
+    <div class="atimes">
+      <div><span>الأذان</span><b id="adhanAt">--</b></div>
+      <div><span>الإقامة</span><b id="iqamaAt">--</b><small id="iqamaLeft"></small></div>
+    </div>
+    <div class="aprev" id="adhanPrev"></div>
     <div class="dua" id="adhanDua">اللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ</div>
+    <div class="aprog" id="adhanProg"></div>
     <div class="row" style="justify-content:center"><button class="bigbtn ghost" data-nav id="btnAdhanStop">إيقاف الأذان</button></div>
   </div>
 </div>
@@ -377,7 +396,7 @@ var VOICES=[
   ["hindi","عبدالرحمن الهندي"],
   ["qassas","محمد مروان قصاص"]
 ];
-var DEF={sched:true,night:"soft",method:"NorthAmerica",madhab:"Shafi",voice:"nufais",fajrVoice:"alafasy_fajr",hijri:0,auto:true,vol:100};
+var DEF={iqama:"std",sched:true,night:"soft",method:"NorthAmerica",madhab:"Shafi",voice:"nufais",fajrVoice:"alafasy_fajr",hijri:0,auto:true,vol:100};
 var S=Object.assign({},DEF);
 try{var saved=JSON.parse(localStorage.getItem("tvdash")||"null");if(saved)Object.assign(S,saved)}catch(e){}
 function save(){try{localStorage.setItem("tvdash",JSON.stringify(S))}catch(e){}}
@@ -487,27 +506,68 @@ function adhanSrc(k){
   }
   return "audio/adhan_"+S.voice+".mp3";
 }
+/* adhan words, shown phrase by phrase in time with the recording */
+var PH=["اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ","اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ","أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ","أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ","أَشْهَدُ أَنَّ مُحَمَّدًا رَسُولُ اللَّهِ","أَشْهَدُ أَنَّ مُحَمَّدًا رَسُولُ اللَّهِ","حَيَّ عَلَى الصَّلَاةِ","حَيَّ عَلَى الصَّلَاةِ","حَيَّ عَلَى الْفَلَاحِ","حَيَّ عَلَى الْفَلَاحِ","اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ","لَا إِلَٰهَ إِلَّا اللَّهُ"];
+var PHF=PH.slice(0,10).concat(["الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ","الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ"],PH.slice(10));
+// start second of each phrase, measured from the pauses in each recording
+var CUES={
+  nufais:[0,12.2,28.2,46.2,64.1,79.5,93.6,110.7,126.5,138.3,153.9,170.3],
+  makkah:[0,15.4,30.7,47.2,68.7,85.9,106.4,123.2,144.2,160.6,181.2,190.7],
+  alafasy:[0,18.9,38.7,61.0,80.2,100.6,124.4,142.2,161.8,173.6,193.8,214.6],
+  qatami:[0,14.0,27.2,38.0,48.5,59.5,78.5,90.0,110.8,120.4,132.6,135.4],
+  hindi:[1.1,13.4,25.7,36.3,47.0,57.6,68.2,87.1,107.9,118.5,131.8,138.0],
+  qassas:[0,22.0,46.6,67.2,90.8,112.1,133.2,153.5,174.0,194.2,210.0,219.0],
+  alafasy_fajr:[0,11.9,24.5,40.4,54.2,72.0,88.2,103.9,117.3,131.2,149.2,162.5,176.0,187.9],
+  qassas_fajr:[0,21.4,45.9,70.8,94.4,118.9,142.5,166.1,189.2,210.2,232.2,252.0,271.1,286.0]
+};
+var IQ={std:{fajr:20,dhuhr:15,asr:15,maghrib:10,isha:15},a10:{fajr:10,dhuhr:10,asr:10,maghrib:10,isha:10},a15:{fajr:15,dhuhr:15,asr:15,maghrib:15,isha:15},a20:{fajr:20,dhuhr:20,asr:20,maghrib:10,isha:20}};
+function iqMin(k){return (IQ[S.iqama]||IQ.std)[k]||15}
+var aCue=null,aPh=null,aIdx=-1,typeT=0,iqamaAt=null,adhanKey="";
+function typeOut(el,text){
+  clearInterval(typeT);el.classList.remove("small");el.classList.add("typing");
+  var chars=Array.from(text),i=0,step=Math.max(25,Math.min(90,1400/chars.length));el.textContent="";
+  typeT=setInterval(function(){i++;el.textContent=chars.slice(0,i).join("");if(i>=chars.length){clearInterval(typeT);el.classList.remove("typing")}},step);
+}
+function drawProg(n){var pr=$("adhanProg");pr.textContent="";for(var i=0;i<aPh.length;i++){var d=document.createElement("i");if(i<=n)d.className="d";pr.appendChild(d)}}
+aplayerCue=function(){
+  if(!aCue||!adhanOn)return;var t=aplayer.currentTime,n=-1;
+  for(var i=0;i<aCue.length;i++)if(t>=aCue[i]-0.15)n=i;
+  if(n<0||n===aIdx)return;aIdx=n;
+  $("adhanPrev").textContent=n>0?aPh[n-1]:"";typeOut($("adhanDua"),aPh[n]);drawProg(n);
+};
 function startAdhan(k,test){
   if(adhanOn)return;
   adhanOn=true;
   resumeAfter=!!(cur&&!player.paused);if(resumeAfter)player.pause();
-  $("adhanTitle").textContent=test?"تجربة الأذان":"أذان "+pname(k,new Date());
-  $("adhanDua").textContent="اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ";
-  aplayer.src=adhanSrc(k);aplayer.volume=S.vol/100;
+  var src=adhanSrc(k),key=src.replace("audio/adhan_","").replace(".mp3","");
+  aCue=CUES[key]||null;aPh=key.indexOf("fajr")>=0?PHF:PH;aIdx=-1;
+  var now=new Date(),pp=parts(now),T=timesFor(pp.y,pp.m,pp.d),at=test?now:T[k];
+  iqamaAt=new Date(at.getTime()+iqMin(k)*60000);adhanKey=k;
+  var f=function(d){var h=hm12(d);return h.t+" "+h.ap};
+  $("adhanHead").textContent=test?"تجربة":"حان الآن موعد";
+  $("adhanTitle").textContent=(test?"أذان ":"أذان ")+pname(k,now);
+  $("adhanAt").textContent=f(at);$("iqamaAt").textContent=f(iqamaAt);$("iqamaLeft").textContent="";
+  $("adhanPrev").textContent="";$("adhanProg").textContent="";
+  var du=$("adhanDua");du.classList.remove("small");du.textContent="";
+  if(!aCue)typeOut(du,aPh[0]);
+  aplayer.src=src;aplayer.volume=S.vol/100;
   aplayer.play().catch(function(){$("adhanDua").textContent="لم يسمح المتصفح بتشغيل الصوت. اضغط OK لتشغيله."});
   openLayer("adhanOv");
 }
 function endAdhan(){
+  clearInterval(typeT);aCue=null;
   aplayer.pause();aplayer.removeAttribute("src");try{aplayer.load()}catch(e){}
   adhanOn=false;closeLayer("adhanOv");
   if(resumeAfter&&cur)player.play().catch(function(){});resumeAfter=false;
 }
+var aplayerCue;
+aplayer.addEventListener("timeupdate",function(){aplayerCue&&aplayerCue()});
 aplayer.addEventListener("ended",function(){
-  $("adhanDua").textContent=DUA;
+  clearInterval(typeT);var du=$("adhanDua");du.classList.remove("typing");du.classList.add("small");du.textContent=DUA;$("adhanPrev").textContent="دعاء بعد الأذان";
   setTimeout(function(){if(adhanOn&&aplayer.ended)endAdhan()},45000);
 });
 $("btnAdhanStop").addEventListener("click",function(){
-  if(adhanOn&&aplayer.paused&&!aplayer.ended&&aplayer.currentTime===0){aplayer.play().catch(function(){});$("adhanDua").textContent="اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ";return}
+  if(adhanOn&&aplayer.paused&&!aplayer.ended&&aplayer.currentTime===0){aplayer.play().catch(function(){});return}
   endAdhan();
 });
 
@@ -561,7 +621,16 @@ function tick(){
     el.classList.toggle("cur",!!prev&&prev[0]===k&&prev[1]===T[k]);
     el.classList.toggle("nxt",!!next&&next[0]===k);
   });
-  if(next){
+  if(adhanOn&&iqamaAt){var il=Math.max(0,Math.ceil((iqamaAt-now)/1000));$("iqamaLeft").textContent=il?"بعد "+Math.floor(il/60)+":"+String(il%60).padStart(2,"0"):"أقيمت الصلاة"}
+  var iqk=prev&&prev[0]!=="sunrise"?prev[0].replace("+",""):null,iqT=iqk?new Date(prev[1].getTime()+iqMin(iqk)*60000):null;
+  if(iqT&&now<iqT){
+    $("nextLbl").textContent="الإقامة";$("nextName").textContent="إقامة "+pname(iqk,now);
+    var it=hm12(iqT);$("nextAt").textContent="الساعة "+it.t+" "+(it.ap==="ص"?"صباحاً":"مساءً");
+    var l2=Math.max(0,Math.floor((iqT-now)/1000));
+    $("cd").textContent=[Math.floor(l2/3600),Math.floor(l2%3600/60),l2%60].map(function(x){return String(x).padStart(2,"0")}).join(":");
+    $("bar").style.width=Math.min(100,(now-prev[1])/(iqT-prev[1])*100)+"%";
+  }else if(next){
+    $("nextLbl").textContent="الصلاة القادمة";
     var nk=next[0].replace("+","");
     $("nextName").textContent=pname(nk,next[1]);
     var nt=hm12(next[1]);$("nextAt").textContent=(next[0]==="fajr+"?"غداً ":"")+"الساعة "+nt.t+" "+(nt.ap==="ص"?"صباحاً":"مساءً");
@@ -723,6 +792,7 @@ var SET=[
   {k:"fajrVoice",l:"أذان الفجر",o:[["alafasy_fajr","أذان الفجر (العفاسي)"],["qassas_fajr","أذان الفجر (قصاص)"],["same","نفس صوت الأذان"]]},
   {k:"auto",l:"الأذان التلقائي",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"vol",l:"مستوى صوت الأذان",o:[[100,"100%"],[80,"80%"],[60,"60%"],[40,"40%"]]},
+  {k:"iqama",l:"مدة الإقامة بعد الأذان",o:[["std","الفجر 20 · المغرب 10 · البقية 15"],["a10","10 دقائق للكل"],["a15","15 دقيقة للكل"],["a20","20 دقيقة · المغرب 10"]]},
   {k:"sched",l:"التشغيل اليومي للسور",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"night",l:"وضع الليل (بعد العشاء بساعة)",o:[["soft","تعتيم خفيف"],["strong","تعتيم قوي"],["off","متوقف"]]},
   {k:"hijri",l:"تعديل التاريخ الهجري",o:[[0,"بدون تعديل"],[1,"+1 يوم"],[2,"+2 يوم"],[-2,"-2 يوم"],[-1,"-1 يوم"]]}
