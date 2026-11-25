@@ -717,6 +717,12 @@ function move(dir){
   if(best)focusEl(best);
 }
 var BACK={8:1,27:1,461:1,10009:1,166:1};
+// TV browsers in pointer mode: whatever the cursor passes over gets the same highlight box as remote focus
+document.addEventListener("mouseover",function(e){
+  var el=e.target.closest&&e.target.closest("[data-nav]");if(!el||el===document.activeElement)return;
+  if(candidates().indexOf(el)<0)return;
+  try{el.focus({preventScroll:true})}catch(x){el.focus()}
+});
 var peekT=0;function peek(){var n=$("night");n.classList.add("peek");clearTimeout(peekT);peekT=setTimeout(function(){n.classList.remove("peek")},60000)}
 document.addEventListener("pointerdown",peek,true);
 document.addEventListener("keydown",function(e){
