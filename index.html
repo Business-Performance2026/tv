@@ -165,9 +165,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .adhanov .dua{font-family:var(--f-text);font-size:calc(var(--u)*2.1);line-height:1.9;color:var(--gold-soft)}
 
 /* settings */
-.set{display:grid;grid-template-columns:1fr auto;gap:calc(var(--u)*.8) calc(var(--u)*2);align-items:center}
-.set label{font-size:calc(var(--u)*1.45)}
-.opt{min-width:calc(var(--u)*26);padding:calc(var(--u)*.9) calc(var(--u)*1.6);border-radius:calc(var(--u)*.9);background:var(--glass-2);font-size:calc(var(--u)*1.35);text-align:center}
+.setcard{width:min(100%,calc(var(--u)*100))!important;padding:calc(var(--u)*2.2) calc(var(--u)*2.6)!important}
+.setcard h2{margin-bottom:calc(var(--u)*.9)!important}
+.set{display:grid;grid-template-columns:1fr auto 1fr auto;gap:calc(var(--u)*.8) calc(var(--u)*1.6);align-items:center}
+.set label{font-size:calc(var(--u)*1.25)}
+.opt{min-width:calc(var(--u)*17);padding:calc(var(--u)*.75) calc(var(--u)*1.2);border-radius:calc(var(--u)*.9);background:var(--glass-2);font-size:calc(var(--u)*1.35);text-align:center}
 .note{font-size:calc(var(--u)*1.05)!important;color:var(--muted)!important;margin-top:calc(var(--u)*1.2)!important}
 
 /* reader */
@@ -211,6 +213,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   .prayers{grid-template-columns:repeat(3,minmax(0,1fr))}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:calc(var(--u)*16)}
   .np{flex-wrap:wrap}
+  .set{grid-template-columns:1fr auto}
   .np .prog{flex-basis:100%;order:5}
   .clock{font-size:calc(var(--u)*9)}
 }
@@ -302,14 +305,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 <!-- settings overlay -->
 <div class="ov" id="setOv" data-layer hidden>
-  <div class="card">
+  <div class="card setcard">
     <h2>الإعدادات</h2>
     <div class="set" id="setList"></div>
     <div class="row" style="margin-top:calc(var(--u)*1.6)">
       <button class="bigbtn" data-nav id="btnSetClose">حفظ وإغلاق</button>
       <button class="bigbtn ghost" data-nav id="btnTest">تجربة الأذان</button>
     </div>
-    <p class="note">اضغط OK على أي خيار لتغييره. تُحفظ الإعدادات في متصفح التلفزيون نفسه.</p>
+    <p class="note">اضغط OK على أي خيار لتغييره. التشغيل اليومي: الكهف 6:30 ص · يس 10 ص · البقرة 11 ص · الملك 9 م.</p>
   </div>
 </div>
 
@@ -713,7 +716,7 @@ var SET=[
   {k:"fajrVoice",l:"أذان الفجر",o:[["alafasy_fajr","أذان الفجر (العفاسي)"],["same","نفس صوت الأذان"]]},
   {k:"auto",l:"الأذان التلقائي",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"vol",l:"مستوى صوت الأذان",o:[[100,"100%"],[80,"80%"],[60,"60%"],[40,"40%"]]},
-  {k:"sched",l:"التشغيل اليومي: الكهف 6:30ص · يس 10ص · البقرة 11ص · الملك 9م",o:[[true,"مفعّل"],[false,"متوقف"]]},
+  {k:"sched",l:"التشغيل اليومي للسور",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"night",l:"وضع الليل (بعد العشاء بساعة)",o:[["soft","تعتيم خفيف"],["strong","تعتيم قوي"],["off","متوقف"]]},
   {k:"hijri",l:"تعديل التاريخ الهجري",o:[[0,"بدون تعديل"],[1,"+1 يوم"],[2,"+2 يوم"],[-2,"-2 يوم"],[-1,"-1 يوم"]]}
 ];
@@ -740,7 +743,7 @@ function topLayer(){for(var i=stack.length-1;i>=0;i--){if(!$(stack[i]).hidden)re
 function openLayer(id,focus){var el=$(id);el.hidden=false;stack=stack.filter(function(x){return x!==id});stack.push(id);focusEl(focus||el.querySelector("[data-nav]"))}
 function closeLayer(id){$(id).hidden=true;stack=stack.filter(function(x){return x!==id});var t=topLayer();if(!t&&S.locked){focusEl($("btnLock"));return}focusEl(t?t.querySelector("[data-nav]"):(lastMain&&document.body.contains(lastMain)&&!lastMain.hidden?lastMain:$("tiles").firstElementChild))}
 var lastMain=null;
-function focusEl(el){if(!el)return;try{el.focus({preventScroll:false})}catch(e){el.focus()}}
+function focusEl(el){if(!el)return;try{el.focus({preventScroll:false})}catch(e){el.focus()}try{el.scrollIntoView({block:"nearest"})}catch(e){}}
 document.addEventListener("focusin",function(e){if(!e.target.closest("[data-layer]"))lastMain=e.target});
 function candidates(){
   var tl=topLayer();
