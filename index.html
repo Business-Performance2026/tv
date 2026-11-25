@@ -94,6 +94,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .herowrap{display:flex;align-items:center;justify-content:space-between;gap:calc(var(--u)*2)}
 .bar{height:calc(var(--u)*.45);border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:calc(var(--u)*.9)}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(270deg,var(--gold),#f4e3b0);border-radius:99px;transition:width 1s linear}
+.home{display:flex;flex-direction:column;gap:calc(var(--u)*.15);padding:calc(var(--u)*.7) calc(var(--u)*1.4);border-radius:calc(var(--u)*1.1);background:var(--glass);border:1px solid var(--line);white-space:nowrap}
+.hlbl{font-size:calc(var(--u)*1);color:var(--gold-soft)}
+.htime{font-size:calc(var(--u)*2.3);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.htime small{font-size:.5em;color:var(--muted);font-weight:400;margin-right:.35em}
+.hnext{font-size:calc(var(--u)*1);color:var(--muted)}
+.alert{max-width:calc(var(--u)*34);line-height:1.5;display:flex;align-items:center;gap:calc(var(--u)*1);padding:calc(var(--u)*.7) calc(var(--u)*1.3);border-radius:calc(var(--u)*.9);background:rgba(229,123,98,.16);border:1px solid rgba(229,123,98,.55);color:#ffd9cf;font-size:calc(var(--u)*1.15)}
+.alert.info{background:rgba(127,196,230,.14);border-color:rgba(127,196,230,.5);color:#d6eefa}
+.alert svg{width:calc(var(--u)*2);height:calc(var(--u)*2);flex:none}
 .qibla{display:flex;align-items:center;gap:calc(var(--u)*1);font-size:calc(var(--u)*1.1);color:var(--muted)}
 .qibla svg{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4)}
 
@@ -224,6 +232,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <div class="greg" id="greg">—</div>
       <div class="en" id="en"></div>
     </div>
+    <div class="home" id="home">
+      <div class="hlbl">مسقط · سلطنة عُمان</div>
+      <div class="htime"><span id="omT">--:--</span><small id="omAP"></small></div>
+      <div class="hnext" id="omNext"></div>
+    </div>
     <div class="status">
       <span class="pill" id="awakePill" title="إبقاء الشاشة مضاءة">الشاشة: —</span>
       <span class="pill" id="soundPill">الأذان: —</span>
@@ -246,7 +259,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
             <div class="wxt"><div class="wxTemp" id="wxTemp"></div><div class="wxDesc" id="wxDesc"></div></div>
             <div class="wxDays" id="wxDays"></div>
           </div>
-        <div class="qibla"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(216,178,92,.5)"/><g id="qneedle"><path d="M20 5 L24 21 L20 18 L16 21 Z" fill="#d8b25c"/></g></svg><span id="qtext">القبلة</span></div>
+        <div class="alert" id="wxAlert" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg><span id="wxAlertText"></span></div>
+        <div class="qibla" id="qibla"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(216,178,92,.5)"/><g id="qneedle"><path d="M20 5 L24 21 L20 18 L16 21 Z" fill="#d8b25c"/></g></svg><span id="qtext">القبلة</span></div>
         <div class="countdown"><small>الوقت المتبقي</small><span id="cd">--:--:--</span></div>
       </div>
       <div class="bar"><i id="bar"></i></div>
@@ -498,6 +512,19 @@ function hijriText(now){
     return s.replace(/\s*هـ$/,"")+" هـ";
   }catch(e){return ""}
 }
+var OM=null,omCache={};
+function omanTick(now){
+  if(!OM){var pr=adhan.CalculationMethod.MuslimWorldLeague();pr.fajrAngle=18;pr.ishaAngle=18;pr.madhab=adhan.Madhab.Shafi;OM={c:new adhan.Coordinates(23.5880,58.3829),p:pr}}
+  var f=function(d){var o={};new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Muscat",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(d).forEach(function(x){o[x.type]=x.value});return o};
+  var o=f(now),h=+o.hour%24;
+  $("omT").textContent=((h%12)||12)+":"+o.minute;$("omAP").textContent=h<12?"ص":"م";
+  var get=function(y,m,d){var k=y+"-"+m+"-"+d;return omCache[k]||(omCache[k]=new adhan.PrayerTimes(OM.c,new Date(y,m-1,d),OM.p))};
+  var y=+o.year,m=+o.month,d=+o.day,t=get(y,m,d),nx=null,nk="";
+  ["fajr","dhuhr","asr","maghrib","isha"].some(function(k){if(t[k]>now){nx=t[k];nk=k;return true}});
+  if(!nx){var tm=new Date(Date.UTC(y,m-1,d+1));nx=get(tm.getUTCFullYear(),tm.getUTCMonth()+1,tm.getUTCDate()).fajr;nk="fajr"}
+  var left=Math.max(0,Math.round((nx-now)/60000)),hh=Math.floor(left/60),mm=left%60;
+  $("omNext").textContent=NAMES[nk]+" بعد "+(hh?hh+" س ":"")+mm+" د";
+}
 function tick(){
   var now=new Date(),p=parts(now);
   var c=hm12(now);$("hm").textContent=c.t;$("ampm").textContent=c.ap==="ص"?"صباحاً":"مساءً";
@@ -535,6 +562,8 @@ function tick(){
   // night mode: from one hour after Isha until 15 minutes before Fajr
   var isNight=S.night!=="off"&&(now>=T.isha.getTime()+36e5||now<T.fajr.getTime()-9e5);
   var nl=$("night");nl.style.setProperty("--night",S.night==="strong"?".72":".5");nl.classList.toggle("on",isNight&&!adhanOn);
+  // Muscat clock
+  omanTick(now);
   // daily recitation schedule (Montreal time)
   if(S.sched&&started&&!adhanOn){
     SCHED.forEach(function(x){
@@ -578,10 +607,29 @@ function wxIcon(kind,day){
     storm:'<path d="M25 37l-5 8h5l-3 7 8-10h-5l3-5z" fill="'+g+'"/>'}[kind]||"";
   return '<g transform="translate(0 -4)">'+cloud+'</g>'+drops;
 }
+function wxAlerts(d){
+  var dd=d.daily,out=[],sev=false,day=["اليوم","بكرة"];
+  for(var i=0;i<2&&i<dd.time.length;i++){
+    var sn=dd.snowfall_sum?dd.snowfall_sum[i]:0,g=dd.wind_gusts_10m_max?dd.wind_gusts_10m_max[i]:0,ap=dd.apparent_temperature_min?dd.apparent_temperature_min[i]:0,wc=dd.weather_code[i];
+    if(sn>=10){out.push("ثلج كثيف "+day[i]+" حوالي "+Math.round(sn)+" سم");sev=true}
+    else if(sn>=5)out.push("ثلج "+day[i]+" حوالي "+Math.round(sn)+" سم");
+    if([56,57,66,67].indexOf(wc)>=0){out.push("مطر متجمد "+day[i]+"، الطرق والأرصفة زلقة");sev=true}
+    if(wc>=95){out.push("عاصفة رعدية "+day[i]);sev=true}
+    if(g>=70){out.push("رياح قوية "+day[i]+" تصل "+Math.round(g)+" كم/س");sev=true}
+    if(ap<=-25){out.push("برد شديد "+day[i]+"، الإحساس الحراري "+Math.round(ap)+"°");sev=true}
+  }
+  if(d.current&&d.current.apparent_temperature<=-20&&!out.some(function(x){return x.indexOf("برد")===0}))out.unshift("برد شديد الحين، الإحساس الحراري "+Math.round(d.current.apparent_temperature)+"°"),sev=true;
+  var a=$("wxAlert");
+  if(!out.length){a.hidden=true;$("qibla").hidden=false;return}
+  $("qibla").hidden=true;
+  $("wxAlertText").textContent=out.slice(0,2).join(" · ");
+  a.className="alert"+(sev?"":" info");a.hidden=false;
+}
 function weather(){
-  var u="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LNG+"&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&daily=weather_code&timezone=America%2FToronto&forecast_days=4";
+  var u="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LNG+"&current=temperature_2m,apparent_temperature,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum,wind_gusts_10m_max,apparent_temperature_min&timezone=America%2FToronto&forecast_days=4";
   fetch(u).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
     var c=d.current,w=WX[c.weather_code]||["",""];
+    try{wxAlerts(d)}catch(e){}
     $("wxIcon").innerHTML=wxIcon(w[1],c.is_day);
     $("wxTemp").textContent=Math.round(c.temperature_2m)+"°";
     var de=$("wxDesc");de.textContent=w[0]+" · ";var sp=document.createElement("span");sp.dir="ltr";sp.textContent=Math.round(d.daily.temperature_2m_min[0])+"° / "+Math.round(d.daily.temperature_2m_max[0])+"°";de.appendChild(sp);
