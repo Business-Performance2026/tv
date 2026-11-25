@@ -511,27 +511,27 @@ var PH=["اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ","ا�
 var PHF=PH.slice(0,10).concat(["الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ","الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ"],PH.slice(10));
 // start second of each phrase, measured from the pauses in each recording
 var CUES={
-  nufais:[0,12.2,28.2,46.2,64.1,79.5,93.6,110.7,126.5,138.3,153.9,170.3],
-  makkah:[0,15.4,30.7,47.2,68.7,85.9,106.4,123.2,144.2,160.6,181.2,190.7],
-  alafasy:[0,18.9,38.7,61.0,80.2,100.6,124.4,142.2,161.8,173.6,193.8,214.6],
-  qatami:[0,14.0,27.2,38.0,48.5,59.5,78.5,90.0,110.8,120.4,132.6,135.4],
-  hindi:[1.1,13.4,25.7,36.3,47.0,57.6,68.2,87.1,107.9,118.5,131.8,138.0],
-  qassas:[0,22.0,46.6,67.2,90.8,112.1,133.2,153.5,174.0,194.2,210.0,219.0],
-  alafasy_fajr:[0,11.9,24.5,40.4,54.2,72.0,88.2,103.9,117.3,131.2,149.2,162.5,176.0,187.9],
-  qassas_fajr:[0,21.4,45.9,70.8,94.4,118.9,142.5,166.1,189.2,210.2,232.2,252.0,271.1,286.0]
+  nufais:[0.6,12.0,28.0,45.9,63.9,79.2,93.4,110.4,126.3,138.1,153.7,170.1],
+  makkah:[0.4,14.5,30.5,46.0,66.2,85.6,104.3,120.7,141.8,159.1,180.2,190.4],
+  alafasy:[0.8,18.7,38.5,60.8,80.1,100.4,124.1,142.1,161.6,173.3,193.6,214.4],
+  qatami:[0.2,13.8,27.0,37.9,48.1,59.1,68.2,78.2,89.7,98.9,110.4,131.8],
+  hindi:[1.0,13.1,25.4,35.5,46.7,56.4,67.6,75.6,86.8,95.2,107.7,130.9],
+  qassas:[0.1,21.6,46.4,67.0,90.6,111.9,133.1,153.2,175.1,194.0,211.0,219.9],
+  alafasy_fajr:[0.4,11.7,24.2,40.1,54.0,71.8,88.0,103.6,117.1,130.9,148.9,162.2,175.8,187.7],
+  qassas_fajr:[0.1,21.1,45.6,70.5,94.2,118.6,142.2,165.8,189.0,209.9,231.9,251.8,270.9,285.8]
 };
 var IQ={std:{fajr:20,dhuhr:15,asr:15,maghrib:10,isha:15},a10:{fajr:10,dhuhr:10,asr:10,maghrib:10,isha:10},a15:{fajr:15,dhuhr:15,asr:15,maghrib:15,isha:15},a20:{fajr:20,dhuhr:20,asr:20,maghrib:10,isha:20}};
 function iqMin(k){return (IQ[S.iqama]||IQ.std)[k]||15}
 var aCue=null,aPh=null,aIdx=-1,typeT=0,iqamaAt=null,adhanKey="";
 function typeOut(el,text){
   clearInterval(typeT);el.classList.remove("small");el.classList.add("typing");
-  var chars=Array.from(text),i=0,step=Math.max(25,Math.min(90,1400/chars.length));el.textContent="";
+  var chars=Array.from(text),i=0,step=Math.max(15,Math.min(40,700/chars.length));el.textContent="";
   typeT=setInterval(function(){i++;el.textContent=chars.slice(0,i).join("");if(i>=chars.length){clearInterval(typeT);el.classList.remove("typing")}},step);
 }
 function drawProg(n){var pr=$("adhanProg");pr.textContent="";for(var i=0;i<aPh.length;i++){var d=document.createElement("i");if(i<=n)d.className="d";pr.appendChild(d)}}
 aplayerCue=function(){
   if(!aCue||!adhanOn)return;var t=aplayer.currentTime,n=-1;
-  for(var i=0;i<aCue.length;i++)if(t>=aCue[i]-0.15)n=i;
+  for(var i=0;i<aCue.length;i++)if(t>=aCue[i]-0.4)n=i;
   if(n<0||n===aIdx)return;aIdx=n;
   $("adhanPrev").textContent=n>0?aPh[n-1]:"";typeOut($("adhanDua"),aPh[n]);drawProg(n);
 };
@@ -562,6 +562,7 @@ function endAdhan(){
 }
 var aplayerCue;
 aplayer.addEventListener("timeupdate",function(){aplayerCue&&aplayerCue()});
+setInterval(function(){if(adhanOn&&!aplayer.paused&&aplayerCue)aplayerCue()},150);
 aplayer.addEventListener("ended",function(){
   clearInterval(typeT);var du=$("adhanDua");du.classList.remove("typing");du.classList.add("small");du.textContent=DUA;$("adhanPrev").textContent="دعاء بعد الأذان";
   setTimeout(function(){if(adhanOn&&aplayer.ended)endAdhan()},45000);
