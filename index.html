@@ -167,6 +167,22 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .navbtn{padding:calc(var(--u)*1) calc(var(--u)*2.2);border-radius:99px;background:var(--glass-2);font-size:calc(var(--u)*1.4)}
 .navbtn.primary{background:var(--gold);color:var(--ink);font-weight:600}
 
+/* lock */
+.lockbtn{position:fixed;z-index:30;left:max(calc(var(--u)*1.2),env(safe-area-inset-left,0px));bottom:calc(var(--u)*1.2 + env(safe-area-inset-bottom,0px));width:calc(var(--u)*3.4);height:calc(var(--u)*3.4);border-radius:50%;display:grid;place-items:center;opacity:.22;transition:opacity .2s}
+.lockbtn svg{width:58%;height:58%;fill:none;stroke:var(--gold-soft);stroke-width:2;stroke-linecap:round}
+.lockbtn.on{opacity:.42}
+.lockbtn:focus{opacity:1;outline:none;background:rgba(0,0,0,.35);box-shadow:0 0 0 calc(var(--u)*.3) var(--gold)}
+.pincard{text-align:center;width:min(100%,calc(var(--u)*44))!important}
+.dots{display:flex;justify-content:center;gap:calc(var(--u)*1.4);margin:calc(var(--u)*1) 0 calc(var(--u)*1.8)}
+.dots i{width:calc(var(--u)*1.6);height:calc(var(--u)*1.6);border-radius:50%;border:2px solid var(--gold);display:block}
+.dots i.f{background:var(--gold)}
+.dots.bad{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--u)*1);direction:ltr}
+.key{height:calc(var(--u)*5.4);border-radius:calc(var(--u)*1);background:var(--glass-2);font-size:calc(var(--u)*2.2);font-weight:600}
+.key.sm{font-size:calc(var(--u)*1.3);font-weight:400;color:var(--muted)}
+.key:focus{outline:none;background:var(--gold);color:var(--ink)}
+.toast{position:fixed;z-index:40;left:50%;bottom:calc(var(--u)*7);transform:translateX(-50%);padding:calc(var(--u)*1) calc(var(--u)*2.2);border-radius:99px;background:rgba(4,25,27,.95);border:1px solid var(--line);font-size:calc(var(--u)*1.4);color:var(--gold-soft);white-space:nowrap}
 #keepAwake{position:fixed;width:2px;height:2px;opacity:.01;bottom:0;left:0;pointer-events:none}
 
 /* portrait / phone */
@@ -271,6 +287,18 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <button class="bigbtn ghost" data-nav id="btnTest">تجربة الأذان</button>
     </div>
     <p class="note">اضغط OK على أي خيار لتغييره. تُحفظ الإعدادات في متصفح التلفزيون نفسه.</p>
+  </div>
+</div>
+
+<!-- lock -->
+<button class="lockbtn" data-nav id="btnLock" aria-label="قفل الشاشة"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path id="lockShackle" d="M8 11V7a4 4 0 0 1 8 0"/></svg></button>
+<div class="toast" id="toast" hidden></div>
+<div class="ov" id="pinOv" data-layer hidden>
+  <div class="card pincard">
+    <h2 id="pinTitle">أدخل رمز القفل</h2>
+    <div class="dots" id="pinDots"><i></i><i></i><i></i><i></i></div>
+    <div class="keypad" id="keypad"></div>
+    <p class="note" id="pinMsg">تقدر تكتب الأرقام من أزرار الريموت مباشرة</p>
   </div>
 </div>
 
@@ -615,18 +643,24 @@ SET.forEach(function(s){
 function renderSet(){SET.forEach(function(s){var o=s.o.find(function(o){return o[0]===S[s.k]})||s.o[0];$("opt-"+s.k).textContent=o[1]})}
 $("btnSettings").addEventListener("click",function(){renderSet();openLayer("setOv",$("opt-method"))});
 $("btnSetClose").addEventListener("click",function(){closeLayer("setOv")});
+(function(){var lab=document.createElement("label");lab.textContent="رمز القفل";lab.htmlFor="opt-pin";
+  var b=document.createElement("button");b.className="opt";b.id="opt-pin";b.setAttribute("data-nav","");b.textContent="تغيير الرمز";
+  b.addEventListener("click",function(){openPin("set")});setList.appendChild(lab);setList.appendChild(b)})();
 $("btnTest").addEventListener("click",function(){closeLayer("setOv");startAdhan("dhuhr",true)});
 
 /* ---------- layers & remote navigation ---------- */
 var stack=[];
 function topLayer(){for(var i=stack.length-1;i>=0;i--){if(!$(stack[i]).hidden)return $(stack[i])}return null}
 function openLayer(id,focus){var el=$(id);el.hidden=false;stack=stack.filter(function(x){return x!==id});stack.push(id);focusEl(focus||el.querySelector("[data-nav]"))}
-function closeLayer(id){$(id).hidden=true;stack=stack.filter(function(x){return x!==id});var t=topLayer();focusEl(t?t.querySelector("[data-nav]"):(lastMain&&document.body.contains(lastMain)&&!lastMain.hidden?lastMain:$("tiles").firstElementChild))}
+function closeLayer(id){$(id).hidden=true;stack=stack.filter(function(x){return x!==id});var t=topLayer();if(!t&&S.locked){focusEl($("btnLock"));return}focusEl(t?t.querySelector("[data-nav]"):(lastMain&&document.body.contains(lastMain)&&!lastMain.hidden?lastMain:$("tiles").firstElementChild))}
 var lastMain=null;
 function focusEl(el){if(!el)return;try{el.focus({preventScroll:false})}catch(e){el.focus()}}
 document.addEventListener("focusin",function(e){if(!e.target.closest("[data-layer]"))lastMain=e.target});
 function candidates(){
-  var scope=topLayer()||$("stage");
+  var tl=topLayer();
+  if(S.locked&&(!tl||(tl.id!=="pinOv"&&tl.id!=="startOv")))return [$("btnLock")];
+  if(!tl&&!S.locked)return Array.prototype.filter.call($("stage").querySelectorAll("[data-nav]"),function(el){return !el.hidden&&el.offsetParent!==null}).concat([$("btnLock")]);
+  var scope=tl||$("stage");
   return Array.prototype.filter.call(scope.querySelectorAll("[data-nav]"),function(el){return !el.hidden&&el.offsetParent!==null});
 }
 function move(dir){
@@ -647,6 +681,12 @@ function move(dir){
 var BACK={8:1,27:1,461:1,10009:1,166:1};
 document.addEventListener("keydown",function(e){
   var k=e.key,c=e.keyCode;
+  var dg=(c>=48&&c<=57)?c-48:(c>=96&&c<=105)?c-96:-1;
+  if(!$("pinOv").hidden&&dg>=0){pinPress(String(dg));e.preventDefault();return}
+  if(S.locked){
+    var isNav=k==="ArrowLeft"||k==="ArrowRight"||k==="ArrowUp"||k==="ArrowDown"||(c>=37&&c<=40)||k==="Enter"||c===13;
+    if(!isNav){e.preventDefault();e.stopPropagation();if((BACK[c]||k==="Escape"||k==="GoBack"||k==="BrowserBack")&&!$("pinOv").hidden)closeLayer("pinOv");return}
+  }
   if(k==="ArrowLeft"||c===37){move("left");e.preventDefault()}
   else if(k==="ArrowRight"||c===39){move("right");e.preventDefault()}
   else if(k==="ArrowUp"||c===38){move("up");e.preventDefault()}
@@ -660,6 +700,49 @@ document.addEventListener("keydown",function(e){
   else if(k==="MediaPlayPause"||c===179||c===415||c===19){togglePlay();e.preventDefault()}
   else if((k==="Enter"||c===13)&&!(document.activeElement&&document.activeElement.matches("[data-nav]"))){var l=candidates();if(l[0])focusEl(l[0]);e.preventDefault()}
 });
+
+/* ---------- lock ---------- */
+if(!S.pin)S.pin="1234";
+var pinMode="unlock",pinBuf="";
+var KEYS=["1","2","3","4","5","6","7","8","9","del","0","cancel"];
+KEYS.forEach(function(x){var b=document.createElement("button");b.className="key"+(x.length>1?" sm":"");b.setAttribute("data-nav","");b.textContent=x==="del"?"مسح":x==="cancel"?"إلغاء":x;
+  b.addEventListener("click",function(){if(x==="del"){pinBuf=pinBuf.slice(0,-1);drawDots()}else if(x==="cancel")closeLayer("pinOv");else pinPress(x)});$("keypad").appendChild(b)});
+function drawDots(){Array.prototype.forEach.call($("pinDots").children,function(d,i){d.classList.toggle("f",i<pinBuf.length)})}
+function openPin(mode){pinMode=mode;pinBuf="";drawDots();
+  $("pinTitle").textContent=mode==="set"?"اكتب الرمز الجديد":"أدخل رمز القفل";
+  $("pinMsg").textContent=mode==="set"?"أربعة أرقام. اكتبها من الريموت أو من الأزرار":"تقدر تكتب الأرقام من أزرار الريموت مباشرة";
+  openLayer("pinOv",$("keypad").children[0])}
+function pinPress(d){
+  if(pinBuf.length>=4)return;pinBuf+=d;drawDots();
+  if(pinBuf.length<4)return;
+  setTimeout(function(){
+    if(pinMode==="set"){S.pin=pinBuf;save();closeLayer("pinOv");toast("تم حفظ الرمز الجديد")}
+    else if(pinBuf===S.pin){setLocked(false);closeLayer("pinOv");toast("تم فتح القفل")}
+    else{var d=$("pinDots");d.classList.remove("bad");void d.offsetWidth;d.classList.add("bad");$("pinMsg").textContent="الرمز غير صحيح، حاول مرة ثانية";pinBuf="";drawDots()}
+  },150);
+}
+var toastT=0;function toast(t){var el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){el.hidden=true},3500)}
+function setLocked(v){
+  S.locked=v;save();
+  $("btnLock").classList.toggle("on",v);$("btnLock").setAttribute("aria-label",v?"الشاشة مقفلة، اضغط لإدخال الرمز":"قفل الشاشة");
+  $("lockShackle").setAttribute("d",v?"M8 11V7a4 4 0 0 1 8 0v4":"M8 11V7a4 4 0 0 1 7.5-2");
+  if(v){trap();if(cur&&document.activeElement&&document.activeElement.closest(".np"))focusEl($("btnLock"))}
+}
+$("btnLock").addEventListener("click",function(){
+  if(S.locked){openPin("unlock");return}
+  setLocked(true);focusEl($("btnLock"));toast("تم قفل الشاشة. للفتح اختر القفل وأدخل الرمز");
+});
+// block mouse/touch clicks on everything else while locked
+document.addEventListener("click",function(e){
+  if(!S.locked)return;var t=e.target;
+  if(t.closest("#btnLock")||t.closest("#pinOv")||t.closest("#startOv"))return;
+  e.preventDefault();e.stopPropagation();
+},true);
+// keep the browser's Back button on this page while locked
+function trap(){try{history.pushState({lock:1},"",location.href)}catch(e){}}
+window.addEventListener("popstate",function(){if(S.locked){trap();toast("الشاشة مقفلة")}});
+window.addEventListener("beforeunload",function(e){if(S.locked){e.preventDefault();e.returnValue=""}});
+setLocked(!!S.locked);
 
 /* ---------- keep the screen awake ---------- */
 var wakeLock=null,videoOn=false;
