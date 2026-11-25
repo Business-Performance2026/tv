@@ -57,7 +57,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .greet{font-size:calc(var(--u)*1.35);color:var(--gold-soft);letter-spacing:.02em}
 .clock{font-family:var(--f-ui);font-weight:600;font-size:calc(var(--u)*6.4);line-height:1;font-variant-numeric:tabular-nums;direction:ltr;display:flex;align-items:baseline;gap:calc(var(--u)*.6)}
 .clock .ampm{font-size:calc(var(--u)*1.9);color:var(--gold);font-family:var(--f-ui)}
-.dates{flex:1;display:flex;flex-direction:column;gap:calc(var(--u)*.45);padding-top:calc(var(--u)*.6);min-width:0}
+.dates{flex:1;min-width:calc(var(--u)*30);display:flex;flex-direction:column;gap:calc(var(--u)*.45);padding-top:calc(var(--u)*.6);min-width:0}
 .hijri{font-family:var(--f-display);font-size:calc(var(--u)*2.5);color:var(--gold-soft)}
 .greg{font-size:calc(var(--u)*1.55)}
 .en{font-size:calc(var(--u)*1);letter-spacing:.18em;color:var(--muted);text-transform:uppercase;direction:ltr;text-align:right}
@@ -74,6 +74,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .wx svg{width:calc(var(--u)*4.6);height:calc(var(--u)*4.6)}
 .wxTemp{font-size:calc(var(--u)*2.6);font-weight:600;direction:ltr;text-align:right;line-height:1.05;font-variant-numeric:tabular-nums}
 .wxDesc{font-size:calc(var(--u)*1.05);color:var(--muted);white-space:nowrap}
+.wxDays{display:flex;gap:calc(var(--u)*1.1);padding-right:calc(var(--u)*1.1);margin-right:calc(var(--u)*.2);border-right:1px solid var(--line)}
+.wxDay{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*.1);font-size:calc(var(--u)*.95);color:var(--muted);min-width:calc(var(--u)*4.6)}
+.wxDay svg{width:calc(var(--u)*2.4);height:calc(var(--u)*2.4)}
+.wxDay b{color:var(--fg);font-weight:500;direction:ltr;unicode-bidi:isolate;font-size:calc(var(--u)*1.05);white-space:nowrap}
+/* night mode */
+#night{position:fixed;inset:0;z-index:25;pointer-events:none;background:#000;opacity:0;transition:opacity 4s ease}
+#night.on{opacity:var(--night,.55)}
+#night.peek{opacity:0;transition:opacity .4s}
 /* hero */
 .hero{display:grid;grid-template-columns:auto 1fr;gap:calc(var(--u)*2.4);align-items:center;
   padding:calc(var(--u)*1.4) calc(var(--u)*2.2);border-radius:calc(var(--u)*1.6);
@@ -216,10 +224,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <div class="greg" id="greg">—</div>
       <div class="en" id="en"></div>
     </div>
-    <div class="wx" id="wx" hidden>
-      <svg viewBox="0 0 48 48" id="wxIcon" aria-hidden="true"></svg>
-      <div class="wxt"><div class="wxTemp" id="wxTemp"></div><div class="wxDesc" id="wxDesc"></div></div>
-    </div>
     <div class="status">
       <span class="pill" id="awakePill" title="إبقاء الشاشة مضاءة">الشاشة: —</span>
       <span class="pill" id="soundPill">الأذان: —</span>
@@ -237,6 +241,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     </div>
     <div>
       <div class="herowrap">
+      <div class="wx" id="wx" hidden>
+            <svg viewBox="0 0 48 48" id="wxIcon" aria-hidden="true"></svg>
+            <div class="wxt"><div class="wxTemp" id="wxTemp"></div><div class="wxDesc" id="wxDesc"></div></div>
+            <div class="wxDays" id="wxDays"></div>
+          </div>
         <div class="qibla"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(216,178,92,.5)"/><g id="qneedle"><path d="M20 5 L24 21 L20 18 L16 21 Z" fill="#d8b25c"/></g></svg><span id="qtext">القبلة</span></div>
         <div class="countdown"><small>الوقت المتبقي</small><span id="cd">--:--:--</span></div>
       </div>
@@ -293,6 +302,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 <!-- lock -->
 <button class="lockbtn" data-nav id="btnLock" aria-label="قفل الشاشة"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path id="lockShackle" d="M8 11V7a4 4 0 0 1 8 0"/></svg></button>
 <div class="toast" id="toast" hidden></div>
+<div id="night" aria-hidden="true"></div>
 <div class="ov" id="pinOv" data-layer hidden>
   <div class="card pincard">
     <h2 id="pinTitle">أدخل رمز القفل</h2>
@@ -349,7 +359,7 @@ var VOICES=[
   ["qatami","ناصر القطامي"],
   ["hindi","عبدالرحمن الهندي"]
 ];
-var DEF={method:"NorthAmerica",madhab:"Shafi",voice:"nufais",fajrVoice:"alafasy_fajr",hijri:0,auto:true,vol:100};
+var DEF={night:"soft",method:"NorthAmerica",madhab:"Shafi",voice:"nufais",fajrVoice:"alafasy_fajr",hijri:0,auto:true,vol:100};
 var S=Object.assign({},DEF);
 try{var saved=JSON.parse(localStorage.getItem("tvdash")||"null");if(saved)Object.assign(S,saved)}catch(e){}
 function save(){try{localStorage.setItem("tvdash",JSON.stringify(S))}catch(e){}}
@@ -519,6 +529,9 @@ function tick(){
     $("cd").textContent=[Math.floor(left/3600),Math.floor(left%3600/60),left%60].map(function(x){return String(x).padStart(2,"0")}).join(":");
     if(prev){var span=next[1]-prev[1];$("bar").style.width=Math.min(100,(now-prev[1])/span*100)+"%"}
   }
+  // night mode: from one hour after Isha until 15 minutes before Fajr
+  var isNight=S.night!=="off"&&(now>=T.isha.getTime()+36e5||now<T.fajr.getTime()-9e5);
+  var nl=$("night");nl.style.setProperty("--night",S.night==="strong"?".72":".5");nl.classList.toggle("on",isNight&&!adhanOn);
   // adhan trigger: within the first 90 seconds of a prayer time
   if(S.auto&&started){
     ["fajr","dhuhr","asr","maghrib","isha"].forEach(function(k){
@@ -552,12 +565,21 @@ function wxIcon(kind,day){
   return '<g transform="translate(0 -4)">'+cloud+'</g>'+drops;
 }
 function weather(){
-  var u="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LNG+"&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=America%2FToronto&forecast_days=1";
+  var u="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LNG+"&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&daily=weather_code&timezone=America%2FToronto&forecast_days=4";
   fetch(u).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
     var c=d.current,w=WX[c.weather_code]||["",""];
     $("wxIcon").innerHTML=wxIcon(w[1],c.is_day);
     $("wxTemp").textContent=Math.round(c.temperature_2m)+"°";
     var de=$("wxDesc");de.textContent=w[0]+" · ";var sp=document.createElement("span");sp.dir="ltr";sp.textContent=Math.round(d.daily.temperature_2m_min[0])+"° / "+Math.round(d.daily.temperature_2m_max[0])+"°";de.appendChild(sp);
+    var box=$("wxDays");box.textContent="";
+    var dn=new Intl.DateTimeFormat("ar",{weekday:"long",timeZone:"UTC"});
+    for(var i=1;i<4&&i<d.daily.time.length;i++){
+      var p=d.daily.time[i].split("-"),el=document.createElement("div");el.className="wxDay";
+      var nm=document.createElement("span");nm.textContent=dn.format(new Date(Date.UTC(+p[0],+p[1]-1,+p[2])));
+      var ic=document.createElementNS("http://www.w3.org/2000/svg","svg");ic.setAttribute("viewBox","0 0 48 48");ic.innerHTML=wxIcon((WX[d.daily.weather_code[i]]||["","cloud"])[1],1);
+      var t=document.createElement("b");t.textContent=Math.round(d.daily.temperature_2m_min[i])+"° / "+Math.round(d.daily.temperature_2m_max[i])+"°";
+      el.appendChild(nm);el.appendChild(ic);el.appendChild(t);box.appendChild(el);
+    }
     $("wx").hidden=false;
   }).catch(function(){});
 }
@@ -629,6 +651,7 @@ var SET=[
   {k:"fajrVoice",l:"أذان الفجر",o:[["alafasy_fajr","أذان الفجر (العفاسي)"],["same","نفس صوت الأذان"]]},
   {k:"auto",l:"الأذان التلقائي",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"vol",l:"مستوى صوت الأذان",o:[[100,"100%"],[80,"80%"],[60,"60%"],[40,"40%"]]},
+  {k:"night",l:"وضع الليل (بعد العشاء بساعة)",o:[["soft","تعتيم خفيف"],["strong","تعتيم قوي"],["off","متوقف"]]},
   {k:"hijri",l:"تعديل التاريخ الهجري",o:[[0,"بدون تعديل"],[1,"+1 يوم"],[2,"+2 يوم"],[-2,"-2 يوم"],[-1,"-1 يوم"]]}
 ];
 var setList=$("setList");
@@ -679,7 +702,10 @@ function move(dir){
   if(best)focusEl(best);
 }
 var BACK={8:1,27:1,461:1,10009:1,166:1};
+var peekT=0;function peek(){var n=$("night");n.classList.add("peek");clearTimeout(peekT);peekT=setTimeout(function(){n.classList.remove("peek")},60000)}
+document.addEventListener("pointerdown",peek,true);
 document.addEventListener("keydown",function(e){
+  peek();
   var k=e.key,c=e.keyCode;
   var dg=(c>=48&&c<=57)?c-48:(c>=96&&c<=105)?c-96:-1;
   if(!$("pinOv").hidden&&dg>=0){pinPress(String(dg));e.preventDefault();return}
