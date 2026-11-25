@@ -9,5 +9,6 @@
 - أذان العفاسي والقطامي: ElsayedMagdy122/Zad-El-Momen
 - أذان الفجر للعفاسي: mpcabd/salat-widget
 - أذان عبدالرحمن الهندي: adhanclock/PWA (MIT)
+- أذان محمد مروان قصاص (والفجر): ahmadado1/unrahconnect
 - تلاوات رعد الكردي: app-furqan/QuranAudio
 - حساب المواقيت: مكتبة adhan.js (MIT)، والطقس من Open-Meteo

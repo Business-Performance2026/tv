@@ -374,7 +374,8 @@ var VOICES=[
   ["makkah","الحرم المكي"],
   ["alafasy","مشاري العفاسي"],
   ["qatami","ناصر القطامي"],
-  ["hindi","عبدالرحمن الهندي"]
+  ["hindi","عبدالرحمن الهندي"],
+  ["qassas","محمد مروان قصاص"]
 ];
 var DEF={sched:true,night:"soft",method:"NorthAmerica",madhab:"Shafi",voice:"nufais",fajrVoice:"alafasy_fajr",hijri:0,auto:true,vol:100};
 var S=Object.assign({},DEF);
@@ -479,7 +480,13 @@ $("npStop").addEventListener("click",stopPlay);
 var aplayer=$("adhanPlayer"),adhanOn=false,resumeAfter=false,played={};
 try{played=JSON.parse(sessionStorage.getItem("tvdash-played")||"{}")}catch(e){}
 var DUA="اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ مَقَامًا مَحْمُودًا الَّذِي وَعَدْتَهُ";
-function adhanSrc(k){return "audio/adhan_"+(k==="fajr"&&S.fajrVoice==="alafasy_fajr"?"alafasy_fajr":S.voice)+".mp3"}
+function adhanSrc(k){
+  if(k==="fajr"){
+    if(S.fajrVoice==="alafasy_fajr"||S.fajrVoice==="qassas_fajr")return "audio/adhan_"+S.fajrVoice+".mp3";
+    if(S.voice==="qassas")return "audio/adhan_qassas_fajr.mp3";
+  }
+  return "audio/adhan_"+S.voice+".mp3";
+}
 function startAdhan(k,test){
   if(adhanOn)return;
   adhanOn=true;
@@ -713,7 +720,7 @@ var SET=[
   {k:"method",l:"طريقة حساب المواقيت",o:METHODS},
   {k:"madhab",l:"وقت العصر",o:[["Shafi","الجمهور (شافعي)"],["Hanafi","حنفي"]]},
   {k:"voice",l:"صوت الأذان",o:VOICES},
-  {k:"fajrVoice",l:"أذان الفجر",o:[["alafasy_fajr","أذان الفجر (العفاسي)"],["same","نفس صوت الأذان"]]},
+  {k:"fajrVoice",l:"أذان الفجر",o:[["alafasy_fajr","أذان الفجر (العفاسي)"],["qassas_fajr","أذان الفجر (قصاص)"],["same","نفس صوت الأذان"]]},
   {k:"auto",l:"الأذان التلقائي",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"vol",l:"مستوى صوت الأذان",o:[[100,"100%"],[80,"80%"],[60,"60%"],[40,"40%"]]},
   {k:"sched",l:"التشغيل اليومي للسور",o:[[true,"مفعّل"],[false,"متوقف"]]},
