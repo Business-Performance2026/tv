@@ -359,7 +359,7 @@ var VOICES=[
   ["qatami","ناصر القطامي"],
   ["hindi","عبدالرحمن الهندي"]
 ];
-var DEF={night:"soft",method:"NorthAmerica",madhab:"Shafi",voice:"nufais",fajrVoice:"alafasy_fajr",hijri:0,auto:true,vol:100};
+var DEF={sched:true,night:"soft",method:"NorthAmerica",madhab:"Shafi",voice:"nufais",fajrVoice:"alafasy_fajr",hijri:0,auto:true,vol:100};
 var S=Object.assign({},DEF);
 try{var saved=JSON.parse(localStorage.getItem("tvdash")||"null");if(saved)Object.assign(S,saved)}catch(e){}
 function save(){try{localStorage.setItem("tvdash",JSON.stringify(S))}catch(e){}}
@@ -421,6 +421,9 @@ TILES.forEach(function(t){
   b.addEventListener("click",function(){t.read?openReader(t.read):playTile(t)});
   tilesEl.appendChild(b);
 });
+
+/* ---------- daily schedule: [hour, minute, tile] ---------- */
+var SCHED=[[6,30,"kahf"],[10,0,"yasin"],[11,0,"baqarah"],[21,0,"mulk"]];
 
 /* ---------- player ---------- */
 var player=$("player"),cur=null,curIdx=0;
@@ -532,6 +535,17 @@ function tick(){
   // night mode: from one hour after Isha until 15 minutes before Fajr
   var isNight=S.night!=="off"&&(now>=T.isha.getTime()+36e5||now<T.fajr.getTime()-9e5);
   var nl=$("night");nl.style.setProperty("--night",S.night==="strong"?".72":".5");nl.classList.toggle("on",isNight&&!adhanOn);
+  // daily recitation schedule (Montreal time)
+  if(S.sched&&started&&!adhanOn){
+    SCHED.forEach(function(x){
+      var at=x[0]*60+x[1],nowMin=p.h*60+p.mi,key=p.y+"-"+p.m+"-"+p.d+"-s-"+x[2];
+      if(nowMin>=at&&nowMin<at+2&&!played[key]){
+        played[key]=1;try{sessionStorage.setItem("tvdash-played",JSON.stringify(played))}catch(e){}
+        var t=TILES.filter(function(y){return y.id===x[2]})[0];
+        if(t&&!(cur&&cur.id===t.id)){playTile(t);toast("تشغيل تلقائي: "+t.t)}
+      }
+    });
+  }
   // adhan trigger: within the first 90 seconds of a prayer time
   if(S.auto&&started){
     ["fajr","dhuhr","asr","maghrib","isha"].forEach(function(k){
@@ -651,6 +665,7 @@ var SET=[
   {k:"fajrVoice",l:"أذان الفجر",o:[["alafasy_fajr","أذان الفجر (العفاسي)"],["same","نفس صوت الأذان"]]},
   {k:"auto",l:"الأذان التلقائي",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"vol",l:"مستوى صوت الأذان",o:[[100,"100%"],[80,"80%"],[60,"60%"],[40,"40%"]]},
+  {k:"sched",l:"التشغيل اليومي: الكهف 6:30ص · يس 10ص · البقرة 11ص · الملك 9م",o:[[true,"مفعّل"],[false,"متوقف"]]},
   {k:"night",l:"وضع الليل (بعد العشاء بساعة)",o:[["soft","تعتيم خفيف"],["strong","تعتيم قوي"],["off","متوقف"]]},
   {k:"hijri",l:"تعديل التاريخ الهجري",o:[[0,"بدون تعديل"],[1,"+1 يوم"],[2,"+2 يوم"],[-2,"-2 يوم"],[-1,"-1 يوم"]]}
 ];
