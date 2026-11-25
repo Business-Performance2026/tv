@@ -516,9 +516,9 @@ var CUES={
   alafasy:[0.8,18.7,38.5,60.8,80.1,100.4,124.1,142.1,161.6,173.3,193.6,214.4],
   qatami:[0.2,13.8,27.0,37.9,48.1,59.1,68.2,78.2,89.7,98.9,110.4,131.8],
   hindi:[1.0,13.1,25.4,35.5,46.7,56.4,67.6,75.6,86.8,95.2,107.7,130.9],
-  qassas:[0.1,21.6,46.4,67.0,90.6,111.9,133.1,153.2,175.1,194.0,211.0,219.9],
+  qassas:[0.1,21.6,46.4,67.0,90.6,111.9,133.1,153.2,175.1,194.0,211.0],
   alafasy_fajr:[0.4,11.7,24.2,40.1,54.0,71.8,88.0,103.6,117.1,130.9,148.9,162.2,175.8,187.7],
-  qassas_fajr:[0.1,21.1,45.6,70.5,94.2,118.6,142.2,165.8,189.0,209.9,231.9,251.8,270.9,285.8]
+  qassas_fajr:[0.1,21.1,45.6,70.5,94.2,118.6,142.2,165.8,189.0,209.9,231.9,251.8,270.9]
 };
 var IQ={std:{fajr:20,dhuhr:15,asr:15,maghrib:10,isha:15},a10:{fajr:10,dhuhr:10,asr:10,maghrib:10,isha:10},a15:{fajr:15,dhuhr:15,asr:15,maghrib:15,isha:15},a20:{fajr:20,dhuhr:20,asr:20,maghrib:10,isha:20}};
 function iqMin(k){return (IQ[S.iqama]||IQ.std)[k]||15}
@@ -541,8 +541,8 @@ function startAdhan(k,test){
   resumeAfter=!!(cur&&!player.paused);if(resumeAfter)player.pause();
   var src=adhanSrc(k),key=src.replace("audio/adhan_","").replace(".mp3","");
   aCue=CUES[key]||null;aPh=key.indexOf("fajr")>=0?PHF:PH;aIdx=-1;
-  // Qassas says each takbir in its own breath, so show a single takbir per line for him
-  if(key.indexOf("qassas")===0)aPh=aPh.map(function(x){return x==="اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ"?"اللَّهُ أَكْبَرُ":x});
+  // Qassas's opening takbir is one line only, so drop the second takbir pair
+  if(key.indexOf("qassas")===0)aPh=aPh.filter(function(x,i){return i!==1});
   var now=new Date(),pp=parts(now),T=timesFor(pp.y,pp.m,pp.d),at=test?now:T[k];
   iqamaAt=new Date(at.getTime()+iqMin(k)*60000);adhanKey=k;
   var f=function(d){var h=hm12(d);return h.t+" "+h.ap};
